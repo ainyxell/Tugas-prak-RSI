@@ -21,7 +21,7 @@ import type {
   User,
   UserRole,
 } from '../types/api.ts';
-import { http } from './http.ts';
+import { http, tokenStorage } from './http.ts';
 
 const data = <T>(response: { data: ApiResponse<T> }): T => response.data.data;
 
@@ -35,11 +35,21 @@ export async function request<T>(
 
 export const authApi = {
   register: (input: RegisterInput) =>
-    http.post<ApiResponse<User>>('/auth/register', input).then(data),
-  login: (input: LoginInput) =>
-    http.post<ApiResponse<User>>('/auth/login', input).then(data),
+    http
+      .post<ApiResponse<{ user: User }>>('/auth/register', input)
+      .then((res) => res.data.data.user),
+  login: async (input: LoginInput) => {
+    const res = await http.post<ApiResponse<{ token: string; user: User }>>(
+      '/auth/login',
+      input,
+    );
+    tokenStorage.set(res.data.data.token);
+    return res.data.data.user;
+  },
   me: () => http.get<ApiResponse<User>>('/auth/me').then(data),
-  logout: () => http.post('/auth/logout'),
+  logout: async () => {
+    tokenStorage.clear();
+  },
 };
 
 export const profileApi = {

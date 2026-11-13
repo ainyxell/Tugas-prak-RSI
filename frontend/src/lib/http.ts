@@ -7,12 +7,23 @@ const baseURL = import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:3
 
 export const http = axios.create({
   baseURL,
-  withCredentials: true,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },
   timeout: 15000,
+});
+
+export const tokenStorage = {
+  get: () => localStorage.getItem('token'),
+  set: (t: string) => localStorage.setItem('token', t),
+  clear: () => localStorage.removeItem('token'),
+};
+
+http.interceptors.request.use((config) => {
+  const token = tokenStorage.get();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 http.interceptors.response.use(

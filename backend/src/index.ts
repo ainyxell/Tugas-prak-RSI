@@ -7,10 +7,12 @@ import { stallRouter } from './routes/stallRouter.ts';
 import { notFoundHandler } from './middlewares/notFound.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { openApiDocument } from './docs/openapi.ts';
+import cors from 'cors';
 
 const app: Application = express();
 const PORT: number = 3000;
 
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 
 app.get('/docs/swagger.json', (_req, res) => {
