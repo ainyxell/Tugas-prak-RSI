@@ -45,7 +45,11 @@ export class StallController {
 
   createStall = async (req: Request, res: Response): Promise<void> => {
     const body = getValidated<CreateStallInput>(res, 'body');
-    const { id: ownerId } = getUser(req);
+    const user = getUser(req);
+    const ownerId =
+      user.role === 'admin' && (body as any).ownerId
+        ? Number((body as any).ownerId)
+        : user.id;
 
     const stall = await this.stallService.createStall(body, ownerId);
     res.status(201).json({ status: 'success', data: stall });

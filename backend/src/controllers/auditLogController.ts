@@ -21,6 +21,8 @@ export class AuditLogController {
     }
   };
 
+  getAll = this.getLogs;
+
   createLog = async (req: Request, res: Response): Promise<Response> => {
     try {
       const log = await this.auditLogService.createLog(req.body);

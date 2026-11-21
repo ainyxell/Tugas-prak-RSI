@@ -6,3 +6,5 @@ export interface MenuItemDto {
   isAvailable: boolean;
   stallName?: string | null;
 }
+
+export type MenuItemResponseDto = MenuItemDto;

@@ -1,5 +1,6 @@
+import { desc, eq } from 'drizzle-orm';
 import { getDb } from '../db/index.ts';
-import { auditLogs } from '../db/schema.ts';
+import { auditLogs, users } from '../db/schema.ts';
 
 export interface CreateAuditLogInput {
   userId: number;
@@ -12,7 +13,20 @@ export interface CreateAuditLogInput {
 export class AuditLogRepository {
   async findAll() {
     const db = await getDb();
-    return db.select().from(auditLogs);
+    return db
+      .select({
+        id: auditLogs.id,
+        userId: auditLogs.userId,
+        userName: users.name,
+        action: auditLogs.action,
+        targetTable: auditLogs.targetTable,
+        targetId: auditLogs.targetId,
+        metadata: auditLogs.metadata,
+        createdAt: auditLogs.createdAt,
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.userId, users.id))
+      .orderBy(desc(auditLogs.id));
   }
 
   async create(input: CreateAuditLogInput) {

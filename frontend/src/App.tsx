@@ -10,6 +10,7 @@ import { MyReviewsPage } from './pages/MyReviewsPage.tsx';
 import { ProfilePage } from './pages/ProfilePage.tsx';
 import { OwnerDashboardPage } from './pages/OwnerDashboardPage.tsx';
 import { AdminDashboardPage } from './pages/AdminDashboardPage.tsx';
+import { AuditLogPage } from './pages/AuditLogPage.tsx';
 import { ForbiddenPage } from './pages/ForbiddenPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 
@@ -39,6 +40,7 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={['admin']} />}>
               <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/audit-logs" element={<AuditLogPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

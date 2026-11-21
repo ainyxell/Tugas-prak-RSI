@@ -1,6 +1,7 @@
 export interface StallResponseDto {
   id: number;
   ownerId: number;
+  ownerName?: string;
   name: string;
   category: string | null;
   location: string | null;
@@ -8,4 +9,5 @@ export interface StallResponseDto {
   avgRating: number;
   reviewCount: number;
   isPopular: boolean;
+  createdAt?: string | null;
 }

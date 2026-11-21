@@ -18,9 +18,13 @@ const config: mssql.config = {
 let poolPromise: Promise<mssql.ConnectionPool> | null = null;
 let dbPromise: ReturnType<typeof buildDb> | null = null;
 
-async function buildDb() {
+export async function getPool(): Promise<mssql.ConnectionPool> {
   poolPromise ??= mssql.connect(config);
-  const pool = await poolPromise;
+  return poolPromise;
+}
+
+async function buildDb() {
+  const pool = await getPool();
   return drizzle({ client: pool });
 }
 

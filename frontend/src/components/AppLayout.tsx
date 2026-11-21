@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquareText,
+  ScrollText,
   ShieldCheck,
   Store,
   UserRound,
@@ -54,10 +55,16 @@ function PrimaryNav({
       ) : null}
 
       {role === 'admin' ? (
-        <NavLink to="/admin" className={navClass}>
-          <ShieldCheck className="size-4" aria-hidden="true" />
-          Panel Admin
-        </NavLink>
+        <>
+          <NavLink to="/admin" end className={navClass}>
+            <ShieldCheck className="size-4" aria-hidden="true" />
+            Panel Admin
+          </NavLink>
+          <NavLink to="/admin/audit-logs" className={navClass}>
+            <ScrollText className="size-4" aria-hidden="true" />
+            Audit Log
+          </NavLink>
+        </>
       ) : null}
     </nav>
   );

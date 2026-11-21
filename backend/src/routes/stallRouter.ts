@@ -20,6 +20,7 @@ const reviewController = new ReviewController();
 stallRouter.get('/', validate(stallQuerySchema, 'query'), stallController.getStalls);
 stallRouter.get('/:id', validate(idParamSchema, 'params'), stallController.getStallById);
 stallRouter.get('/:id/menus', validate(idParamSchema, 'params'), stallController.getStallMenus);
+stallRouter.get('/:id/reviews', reviewController.getByStall);
 
 // Route terlindungi (Owner & Admin)
 stallRouter.post(

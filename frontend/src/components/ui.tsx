@@ -19,8 +19,8 @@ import {
 import { buttonClass } from '../lib/buttonClass.ts';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-type AlertTone = 'success' | 'error' | 'warning' | 'info';
-type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'primary';
+export type AlertTone = 'success' | 'error' | 'warning' | 'info';
+export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'primary';
 
 const alertTones: Record<AlertTone, string> = {
   success: 'border-success/20 bg-success-bg text-success',
@@ -103,13 +103,16 @@ export function PageHeader({
 
 export function Alert({
   tone = 'info',
+  title,
   children,
 }: {
   tone?: AlertTone;
+  title?: string;
   children: ReactNode;
 }) {
   return (
     <div className={`rounded-control border px-3.5 py-2.5 text-sm ${alertTones[tone]}`} role="alert">
+      {title ? <h4 className="mb-1 font-semibold">{title}</h4> : null}
       {children}
     </div>
   );

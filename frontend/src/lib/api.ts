@@ -1,3 +1,4 @@
+import axios from 'axios';
 import type {
   ApiResponse,
   AuditLog,
@@ -21,7 +22,8 @@ import type {
   User,
   UserRole,
 } from '../types/api.ts';
-import { http, tokenStorage } from './http.ts';
+import type { AuditLogFilters, AuditLogList } from '../types/auditLog.ts';
+import { http, tokenStorage, getApiErrorMessage } from './http.ts';
 
 const data = <T>(response: { data: ApiResponse<T> }): T => response.data.data;
 
@@ -120,6 +122,74 @@ export const flagsApi = {
 export const auditApi = {
   list: () => http.get<ApiResponse<AuditLog[]>>('/audit-logs').then(data),
 };
+
+export const errorMessage = (error: unknown): string => getApiErrorMessage(error);
+
+export function getFieldErrors(error: unknown): Record<string, string> {
+  if (axios.isAxiosError(error) && error.response?.data?.errors) {
+    const fieldErrors: Record<string, string> = {};
+    for (const item of error.response.data.errors) {
+      if (item.field && item.message) {
+        fieldErrors[item.field] = item.message;
+      }
+    }
+    return fieldErrors;
+  }
+  return {};
+}
+
+export async function getAuditLogs(params?: AuditLogFilters): Promise<AuditLogList> {
+  const all = await auditApi.list();
+  let list = all.map((log) => ({
+    id: log.id,
+    userId: log.userId,
+    userName: log.userName ?? null,
+    userEmail: null,
+    action: log.action,
+    targetTable: log.targetTable,
+    targetId: log.targetId,
+    metadata: (() => {
+      try {
+        return log.metadata ? JSON.parse(log.metadata) : null;
+      } catch {
+        return log.metadata;
+      }
+    })(),
+    createdAt: log.createdAt ?? new Date().toISOString(),
+  }));
+
+  if (params?.action) {
+    list = list.filter((l) => l.action === params.action);
+  }
+  if (params?.targetTable) {
+    list = list.filter((l) => l.targetTable === params.targetTable);
+  }
+  if (params?.from) {
+    const fromTime = new Date(params.from).getTime();
+    list = list.filter((l) => new Date(l.createdAt).getTime() >= fromTime);
+  }
+  if (params?.to) {
+    const toTime = new Date(params.to).getTime() + 86400000;
+    list = list.filter((l) => new Date(l.createdAt).getTime() <= toTime);
+  }
+
+  const page = params?.page ?? 1;
+  const pageSize = params?.pageSize ?? 20;
+  const total = list.length;
+  const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+  const start = (page - 1) * pageSize;
+  const items = list.slice(start, start + pageSize);
+
+  return {
+    items,
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+    },
+  };
+}
 
 export function getStalls(): Promise<Stall[]> {
   return stallsApi.list();

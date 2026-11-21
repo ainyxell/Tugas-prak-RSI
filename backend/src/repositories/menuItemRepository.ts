@@ -11,9 +11,9 @@ export interface CreateMenuItemInput {
 
 export class MenuItemRepository {
   // JOIN ke STALLS supaya response ikut menampilkan nama warung.
-  async findAllWithStall() {
+  async findAllWithStall(stallId?: number) {
     const db = await getDb();
-    return db
+    const query = db
       .select({
         id: menuItems.id,
         stallId: menuItems.stallId,
@@ -24,6 +24,11 @@ export class MenuItemRepository {
       })
       .from(menuItems)
       .leftJoin(stalls, eq(menuItems.stallId, stalls.id));
+
+    if (stallId) {
+      return query.where(eq(menuItems.stallId, stallId));
+    }
+    return query;
   }
 
   async findByStallId(stallId: number) {
@@ -33,7 +38,18 @@ export class MenuItemRepository {
 
   async findById(id: number) {
     const db = await getDb();
-    const rows = await db.select().from(menuItems).where(eq(menuItems.id, id));
+    const rows = await db
+      .select({
+        id: menuItems.id,
+        stallId: menuItems.stallId,
+        name: menuItems.name,
+        price: menuItems.price,
+        isAvailable: menuItems.isAvailable,
+        stallName: stalls.name,
+      })
+      .from(menuItems)
+      .leftJoin(stalls, eq(menuItems.stallId, stalls.id))
+      .where(eq(menuItems.id, id));
     return rows[0];
   }
 

@@ -1,18 +1,36 @@
 import express, { type Application } from 'express';
 import { sql } from 'drizzle-orm';
 import swaggerUi from 'swagger-ui-express';
+import cors from 'cors';
 import { getDb } from './db/index.ts';
 import { authRouter } from './routes/authRouter.ts';
 import { stallRouter } from './routes/stallRouter.ts';
+import { userRouter } from './routes/userRouter.ts';
+import { profileRouter } from './routes/profileRouter.ts';
+import { menuItemRouter } from './routes/menuItemRouter.ts';
+import { reviewRouter } from './routes/reviewRouter.ts';
+import { flagRouter } from './routes/flagRouter.ts';
+import { auditLogRouter } from './routes/auditLogRouter.ts';
 import { notFoundHandler } from './middlewares/notFound.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { openApiDocument } from './docs/openapi.ts';
-import cors from 'cors';
 
 const app: Application = express();
 const PORT: number = 3000;
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Izinkan request tanpa origin (seperti curl/Postman) atau dari localhost manapun
+      if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.get('/docs/swagger.json', (_req, res) => {
@@ -26,12 +44,21 @@ app.get('/health', async (_req, res) => {
   res.status(200).json({ status: 'success', message: 'Server dan database terhubung' });
 });
 
-// Dipasang di /api/v1/... (sesuai hands-on) dan di root /... (sesuai tabel soal Tugas 3)
-app.use('/api/v1/auth', authRouter);
-app.use('/auth', authRouter);
+// Helper untuk mendaftarkan router di root (/...), /api/..., dan /api/v1/...
+function registerRoute(path: string, router: express.Router) {
+  app.use(path, router);
+  app.use(`/api${path}`, router);
+  app.use(`/api/v1${path}`, router);
+}
 
-app.use('/api/v1/stalls', stallRouter);
-app.use('/stalls', stallRouter);
+registerRoute('/auth', authRouter);
+registerRoute('/users', userRouter);
+registerRoute('/profile', profileRouter);
+registerRoute('/stalls', stallRouter);
+registerRoute('/menu', menuItemRouter);
+registerRoute('/reviews', reviewRouter);
+registerRoute('/flags', flagRouter);
+registerRoute('/audit-logs', auditLogRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

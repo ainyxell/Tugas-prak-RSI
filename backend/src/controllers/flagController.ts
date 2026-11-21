@@ -1,35 +1,42 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { FlagService } from '../services/flagService.ts';
+import { getUser } from '../middlewares/auth.ts';
 
 export class FlagController {
   constructor(private flagService: FlagService = new FlagService()) {}
 
-  private handleError(res: Response, error: unknown): Response {
-    if (error instanceof Error && error.message === 'FLAG_NOT_FOUND') {
-      return res.status(404).json({ status: 'fail', message: 'Flag tidak ditemukan' });
-    }
-    return res.status(500).json({
-      status: 'error',
-      message: 'Terjadi kesalahan pada server',
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-
-  getFlags = async (req: Request, res: Response): Promise<Response> => {
+  getFlags = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const flags = await this.flagService.getAllFlags();
-      return res.status(200).json({ status: 'success', data: flags });
+      const status = req.query.status as 'pending' | 'resolved' | 'dismissed' | undefined;
+      const flags = await this.flagService.getAllFlags(status);
+      res.status(200).json({ status: 'success', data: flags });
     } catch (error) {
-      return this.handleError(res, error);
+      next(error);
     }
   };
 
-  updateFlagStatus = async (req: Request, res: Response): Promise<Response> => {
+  createFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const flag = await this.flagService.updateFlagStatus(Number(req.params.id), req.body.status);
-      return res.status(200).json({ status: 'success', data: flag });
+      const reviewId = Number(req.params.id || req.params.reviewId || req.body.reviewId);
+      const user = getUser(req);
+      const flag = await this.flagService.createFlag({
+        reviewId,
+        reportedBy: user.id,
+        reason: req.body.reason,
+      });
+      res.status(201).json({ status: 'success', data: flag });
     } catch (error) {
-      return this.handleError(res, error);
+      next(error);
+    }
+  };
+
+  updateFlagStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = Number(req.params.id);
+      const flag = await this.flagService.updateFlagStatus(id, req.body.status);
+      res.status(200).json({ status: 'success', data: flag });
+    } catch (error) {
+      next(error);
     }
   };
 }

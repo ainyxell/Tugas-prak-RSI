@@ -1,17 +1,25 @@
 import { Router } from 'express';
 import { AuditLogController } from '../controllers/auditLogController.ts';
+import { authenticate } from '../middlewares/auth.ts';
+import { authorize } from '../middlewares/authorize.ts';
 
 const auditLogRouter = Router();
 const auditLogController = new AuditLogController();
 
-auditLogRouter.get('/', (req, res) => {
-  // #swagger.responses[200] = { description: 'Daftar audit log' }
-  return auditLogController.getLogs(req, res);
-});
+// Riwayat audit hanya untuk admin. Tidak ada endpoint ubah/hapus: audit
+// bersifat append-only supaya jejaknya tidak bisa dimanipulasi dari aplikasi.
+auditLogRouter.get(
+  '/',
+  authenticate,
+  authorize('admin'),
+  auditLogController.getLogs,
+);
 
-auditLogRouter.post('/', (req, res) => {
-  // #swagger.parameters['body'] = { in: 'body', required: true, schema: { $ref: '#/definitions/AuditLogInput' } }
-  return auditLogController.createLog(req, res);
-});
+auditLogRouter.post(
+  '/',
+  authenticate,
+  authorize('admin'),
+  auditLogController.createLog,
+);
 
 export { auditLogRouter };

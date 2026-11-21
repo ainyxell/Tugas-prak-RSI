@@ -24,11 +24,12 @@ export class StallService {
     this.menuItemRepository = menuItemRepository;
   }
 
-  private toDto(row: StallRow): StallResponseDto {
+  private toDto(row: any): StallResponseDto {
     const avgRating = Number(row.avgRating);
     return {
       id: row.id,
       ownerId: row.ownerId,
+      ownerName: row.ownerName ?? 'Pemilik',
       name: row.name,
       category: row.category,
       location: row.location,
@@ -36,6 +37,7 @@ export class StallService {
       avgRating,
       reviewCount: row.reviewCount,
       isPopular: avgRating >= 4.7,
+      createdAt: row.createdAt ? (row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt)) : null,
     };
   }
 
@@ -59,7 +61,7 @@ export class StallService {
   async createStall(input: CreateStallInput, ownerId: number): Promise<StallResponseDto> {
     const row = await this.stallRepository.create({ ...input, ownerId });
     if (!row) throw new NotFoundError('Warung gagal dibuat');
-    return this.toDto(row);
+    return this.getStallById(row.id);
   }
 
   async updateStall(
@@ -77,14 +79,13 @@ export class StallService {
 
     const row = await this.stallRepository.update(id, input);
     if (!row) throw new NotFoundError('Warung tidak ditemukan');
-    return this.toDto(row);
+    return this.getStallById(id);
   }
 
   async deleteStall(id: number): Promise<StallResponseDto> {
+    const existing = await this.getStallById(id);
     const row = await this.stallRepository.remove(id);
     if (!row) throw new NotFoundError('Warung tidak ditemukan');
-    return this.toDto(row);
+    return existing;
   }
 }
-
-

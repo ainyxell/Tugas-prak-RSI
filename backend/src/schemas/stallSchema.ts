@@ -35,36 +35,34 @@ export const stallQuerySchema = z.object({
     .int('limit harus bilangan bulat')
     .min(1, 'limit minimal 1')
     .max(100, 'limit maksimal 100')
-    .default(10)
-    .openapi({ description: 'Jumlah data per halaman (maks 100)', example: 10 }),
+    .default(100)
+    .openapi({ description: 'Jumlah data per halaman (maks 100)', example: 100 }),
 });
 
 const optionalNullableText = (max: number, fieldName: string) =>
   z.string().trim().max(max, `${fieldName} maksimal ${max} karakter`).nullable().optional();
 
-// CATATAN: ownerId TIDAK ADA di body karena diambil dari token JWT
-export const createStallSchema = z
-  .object({
-    name: z
-      .string({ required_error: 'name wajib diisi' })
-      .trim()
-      .min(3, 'name minimal 3 karakter')
-      .max(100, 'name maksimal 100 karakter')
-      .openapi({ example: 'Warung Baru', description: 'Nama warung' }),
-    category: optionalNullableText(50, 'category').openapi({
-      example: 'Nasi',
-      description: 'Kategori warung (mis. Nasi, Bakso, Minuman)',
-    }),
-    location: optionalNullableText(100, 'location').openapi({
-      example: 'Kantin FK',
-      description: 'Lokasi warung',
-    }),
-    description: optionalNullableText(1000, 'description').openapi({
-      example: 'Nasi goreng dadakan',
-      description: 'Deskripsi warung',
-    }),
-  })
-  .strict({ message: 'body hanya boleh berisi name, category, location, dan description' });
+export const createStallSchema = z.object({
+  ownerId: z.coerce.number().int().positive().optional(),
+  name: z
+    .string({ required_error: 'name wajib diisi' })
+    .trim()
+    .min(3, 'name minimal 3 karakter')
+    .max(100, 'name maksimal 100 karakter')
+    .openapi({ example: 'Warung Baru', description: 'Nama warung' }),
+  category: optionalNullableText(50, 'category').openapi({
+    example: 'Nasi',
+    description: 'Kategori warung (mis. Nasi, Bakso, Minuman)',
+  }),
+  location: optionalNullableText(100, 'location').openapi({
+    example: 'Kantin FK',
+    description: 'Lokasi warung',
+  }),
+  description: optionalNullableText(1000, 'description').openapi({
+    example: 'Nasi goreng dadakan',
+    description: 'Deskripsi warung',
+  }),
+});
 
 export const updateStallSchema = createStallSchema.partial();
 
@@ -72,4 +70,3 @@ export type IdParam = z.infer<typeof idParamSchema>;
 export type StallQuery = z.infer<typeof stallQuerySchema>;
 export type CreateStallInput = z.infer<typeof createStallSchema>;
 export type UpdateStallInput = z.infer<typeof updateStallSchema>;
-

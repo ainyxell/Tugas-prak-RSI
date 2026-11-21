@@ -72,6 +72,10 @@ export function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+export function formatDateTime(value: string | null): string {
+  return formatDate(value);
+}
+
 export function formatDateOnly(value: string | null): string {
   if (!value) return '-';
 

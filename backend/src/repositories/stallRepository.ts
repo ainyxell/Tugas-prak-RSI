@@ -1,6 +1,6 @@
 import { and, count, eq, like, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/index.ts';
-import { stalls } from '../db/schema.ts';
+import { stalls, users } from '../db/schema.ts';
 
 export interface FindAllParams {
   search?: string;
@@ -30,8 +30,20 @@ export class StallRepository {
 
     // MSSQL: pagination memakai ORDER BY + OFFSET ... FETCH NEXT.
     const rows = await db
-      .select()
+      .select({
+        id: stalls.id,
+        ownerId: stalls.ownerId,
+        ownerName: users.name,
+        name: stalls.name,
+        category: stalls.category,
+        location: stalls.location,
+        description: stalls.description,
+        avgRating: stalls.avgRating,
+        reviewCount: stalls.reviewCount,
+        createdAt: stalls.createdAt,
+      })
       .from(stalls)
+      .leftJoin(users, eq(stalls.ownerId, users.id))
       .where(where)
       .orderBy(stalls.id)
       .offset(offset)
@@ -44,7 +56,22 @@ export class StallRepository {
 
   async findById(id: number) {
     const db = await getDb();
-    const rows = await db.select().from(stalls).where(eq(stalls.id, id));
+    const rows = await db
+      .select({
+        id: stalls.id,
+        ownerId: stalls.ownerId,
+        ownerName: users.name,
+        name: stalls.name,
+        category: stalls.category,
+        location: stalls.location,
+        description: stalls.description,
+        avgRating: stalls.avgRating,
+        reviewCount: stalls.reviewCount,
+        createdAt: stalls.createdAt,
+      })
+      .from(stalls)
+      .leftJoin(users, eq(stalls.ownerId, users.id))
+      .where(eq(stalls.id, id));
     return rows[0];
   }
 

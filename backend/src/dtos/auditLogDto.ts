@@ -1,9 +1,10 @@
 export interface AuditLogResponseDto {
   id: number;
   userId: number;
+  userName?: string;
   action: string;
   targetTable: string;
   targetId: number;
   metadata: string | null;
-  createdAt: Date | null;
+  createdAt: string | null;
 }
