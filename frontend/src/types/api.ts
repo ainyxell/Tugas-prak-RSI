@@ -65,16 +65,7 @@ export interface Flag {
   createdAt: string | null;
 }
 
-export interface AuditLog {
-  id: number;
-  userId: number;
-  userName: string;
-  action: string;
-  targetTable: string;
-  targetId: number;
-  metadata: string | null;
-  createdAt: string | null;
-}
+export type { AuditLog } from './auditLog.ts';
 
 export interface ApiResponse<T> {
   status: 'success';

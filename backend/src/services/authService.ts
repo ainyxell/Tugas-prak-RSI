@@ -5,6 +5,7 @@ import { AppError } from '../errors/AppError.ts';
 import { UnauthorizedError } from '../errors/UnauthorizedError.ts';
 import type { LoginInput, RegisterInput } from '../schemas/authSchema.ts';
 import type { AuthUserDto, LoginResponseDto } from '../dtos/authDto.ts';
+import { AuditLogService } from './auditLogService.ts';
 
 type UserRow = NonNullable<Awaited<ReturnType<UserRepository['findByEmail']>>>;
 
@@ -14,9 +15,14 @@ function getSaltRounds(): number {
 
 export class AuthService {
   private userRepository: UserRepository;
+  private auditLogService: AuditLogService;
 
-  constructor(userRepository: UserRepository = new UserRepository()) {
+  constructor(
+    userRepository: UserRepository = new UserRepository(),
+    auditLogService: AuditLogService = new AuditLogService(),
+  ) {
     this.userRepository = userRepository;
+    this.auditLogService = auditLogService;
   }
 
   private toDto(row: UserRow): AuthUserDto {
@@ -42,21 +48,36 @@ export class AuthService {
     return this.toDto(row);
   }
 
-  async login(input: LoginInput): Promise<LoginResponseDto> {
+  async login(
+  input: LoginInput,
+  requestInfo: {
+    ipAddress: string;
+    userAgent: string;
+  },
+  ): Promise<LoginResponseDto> {
     const row = await this.userRepository.findByEmail(input.email);
     if (!row) throw new UnauthorizedError('Email atau password salah');
-
-    const passwordValid = await bcrypt.compare(input.password, row.passwordHash);
-    if (!passwordValid) throw new UnauthorizedError('Email atau password salah');
-
+    const passwordValid = await bcrypt.compare(
+      input.password,
+      row.passwordHash,
+    );
+    if (!passwordValid) {
+      throw new UnauthorizedError('Email atau password salah');}
     const user: AuthUser = this.toDto(row);
-    return {
-      token: signToken(user),
-      tokenType: 'Bearer',
-      expiresIn: process.env.JWT_EXPIRES_IN ?? '2h',
-      user,
-    };
+    const response: LoginResponseDto = {
+      token: signToken(user),tokenType: 'Bearer',expiresIn: process.env.JWT_EXPIRES_IN ?? '2h',user,};
+    await this.auditLogService.recordLogin(user, requestInfo);
+    return response;
+  }
+
+  async logout(
+    user: { id: number; role?: string },
+    requestInfo: {
+      ipAddress: string;
+      userAgent: string;
+    },
+  ): Promise<void> {
+    await this.auditLogService.recordLogout(user, requestInfo);
   }
 }
-
 

@@ -17,14 +17,31 @@ export class AuthController {
     res.status(201).json({ status: 'success', data: { user } });
   };
 
-  login = async (_req: Request, res: Response): Promise<void> => {
+  login = async (req: Request, res: Response): Promise<void> => {
     const body = getValidated<LoginInput>(res, 'body');
-    const data = await this.authService.login(body);
+    const requestInfo = {ipAddress: req.ip || 'unknown',userAgent: req.get('user-agent') || 'unknown',};
+    const data = await this.authService.login(body, requestInfo);
     res.status(200).json({ status: 'success', data });
   };
 
   getMe = async (req: Request, res: Response): Promise<void> => {
     const user = getUser(req);
     res.status(200).json({ status: 'success', data: user });
+  };
+
+  logout = async (req: Request, res: Response): Promise<void> => {
+    const user = getUser(req);
+
+    const requestInfo = {
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('user-agent') || 'unknown',
+    };
+
+    await this.authService.logout(user, requestInfo);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Logout berhasil',
+    });
   };
 }

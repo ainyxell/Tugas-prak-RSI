@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   mssqlTable,
   int,
@@ -70,5 +71,5 @@ export const auditLogs = mssqlTable('AUDIT_LOGS', {
   targetTable: nvarchar('target_table', { length: 50 }).notNull(),
   targetId: int('target_id').notNull(),
   metadata: nvarchar('metadata', { length: 'max' }),
-  createdAt: datetime2('created_at'),
+  createdAt: datetime2('created_at').notNull().default(sql`SYSUTCDATETIME()`),
 });

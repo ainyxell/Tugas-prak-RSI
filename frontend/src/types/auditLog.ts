@@ -27,6 +27,8 @@ export interface AuditLogFilters {
   pageSize?: number
   action?: string
   targetTable?: string
+  targetId?: number
+  userId?: number
   from?: string
   to?: string
 }

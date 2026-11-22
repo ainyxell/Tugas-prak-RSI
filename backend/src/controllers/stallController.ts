@@ -51,7 +51,7 @@ export class StallController {
         ? Number((body as any).ownerId)
         : user.id;
 
-    const stall = await this.stallService.createStall(body, ownerId);
+    const stall = await this.stallService.createStall(body, ownerId, user);
     res.status(201).json({ status: 'success', data: stall });
   };
 
@@ -64,9 +64,10 @@ export class StallController {
     res.status(200).json({ status: 'success', data: stall });
   };
 
-  deleteStall = async (_req: Request, res: Response): Promise<void> => {
+  deleteStall = async (req: Request, res: Response): Promise<void> => {
     const { id } = getValidated<IdParam>(res, 'params');
-    const stall = await this.stallService.deleteStall(id);
+    const user = getUser(req);
+    const stall = await this.stallService.deleteStall(id, user);
     res.status(200).json({ status: 'success', data: stall });
   };
 }

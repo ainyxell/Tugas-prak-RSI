@@ -1,7 +1,6 @@
 import axios from 'axios';
 import type {
   ApiResponse,
-  AuditLog,
   CreateOwnerInput,
   Flag,
   FlagInput,
@@ -22,7 +21,7 @@ import type {
   User,
   UserRole,
 } from '../types/api.ts';
-import type { AuditLogFilters, AuditLogList } from '../types/auditLog.ts';
+import type { AuditLog, AuditLogFilters, AuditLogList } from '../types/auditLog.ts';
 import { http, tokenStorage, getApiErrorMessage } from './http.ts';
 
 const data = <T>(response: { data: ApiResponse<T> }): T => response.data.data;
@@ -120,7 +119,10 @@ export const flagsApi = {
 };
 
 export const auditApi = {
-  list: () => http.get<ApiResponse<AuditLog[]>>('/audit-logs').then(data),
+  list: (params?: AuditLogFilters) =>
+    http.get<ApiResponse<AuditLogList>>('/audit-logs', { params }).then(data),
+  get: (id: number) =>
+    http.get<ApiResponse<AuditLog>>(`/audit-logs/${id}`).then(data),
 };
 
 export const errorMessage = (error: unknown): string => getApiErrorMessage(error);
@@ -139,56 +141,23 @@ export function getFieldErrors(error: unknown): Record<string, string> {
 }
 
 export async function getAuditLogs(params?: AuditLogFilters): Promise<AuditLogList> {
-  const all = await auditApi.list();
-  let list = all.map((log) => ({
-    id: log.id,
-    userId: log.userId,
-    userName: log.userName ?? null,
-    userEmail: null,
-    action: log.action,
-    targetTable: log.targetTable,
-    targetId: log.targetId,
-    metadata: (() => {
-      try {
-        return log.metadata ? JSON.parse(log.metadata) : null;
-      } catch {
-        return log.metadata;
-      }
-    })(),
-    createdAt: log.createdAt ?? new Date().toISOString(),
-  }));
+  const queryParams: Record<string, string | number> = {};
+  if (params?.page) queryParams.page = params.page;
+  if (params?.pageSize) queryParams.pageSize = params.pageSize;
+  if (params?.action) queryParams.action = params.action;
+  if (params?.targetTable) queryParams.targetTable = params.targetTable;
+  if (params?.targetId !== undefined && !Number.isNaN(params.targetId)) queryParams.targetId = params.targetId;
+  if (params?.userId !== undefined && !Number.isNaN(params.userId)) queryParams.userId = params.userId;
+  if (params?.from) queryParams.from = params.from;
+  if (params?.to) queryParams.to = params.to;
 
-  if (params?.action) {
-    list = list.filter((l) => l.action === params.action);
-  }
-  if (params?.targetTable) {
-    list = list.filter((l) => l.targetTable === params.targetTable);
-  }
-  if (params?.from) {
-    const fromTime = new Date(params.from).getTime();
-    list = list.filter((l) => new Date(l.createdAt).getTime() >= fromTime);
-  }
-  if (params?.to) {
-    const toTime = new Date(params.to).getTime() + 86400000;
-    list = list.filter((l) => new Date(l.createdAt).getTime() <= toTime);
-  }
+  const res = await http.get<ApiResponse<AuditLogList>>('/audit-logs', { params: queryParams });
+  return res.data.data;
+}
 
-  const page = params?.page ?? 1;
-  const pageSize = params?.pageSize ?? 20;
-  const total = list.length;
-  const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize;
-  const items = list.slice(start, start + pageSize);
-
-  return {
-    items,
-    pagination: {
-      page,
-      pageSize,
-      total,
-      totalPages,
-    },
-  };
+export async function getAuditLogById(id: number): Promise<AuditLog> {
+  const res = await http.get<ApiResponse<AuditLog>>(`/audit-logs/${id}`);
+  return res.data.data;
 }
 
 export function getStalls(): Promise<Stall[]> {

@@ -1,5 +1,6 @@
 import { ReviewRepository } from '../repositories/reviewRepository.ts';
 import { StallRepository } from '../repositories/stallRepository.ts';
+import { AuditLogService } from './auditLogService.ts';
 import type { ReviewResponseDto } from '../dtos/reviewDto.ts';
 import { AppError } from '../errors/AppError.ts';
 import { ForbiddenError } from '../errors/ForbiddenError.ts';
@@ -9,13 +10,16 @@ import type { CreateReviewInput } from '../schemas/reviewSchema.ts';
 export class ReviewService {
   private reviewRepository: ReviewRepository;
   private stallRepository: StallRepository;
+  private auditLogService: AuditLogService;
 
   constructor(
     reviewRepository: ReviewRepository = new ReviewRepository(),
     stallRepository: StallRepository = new StallRepository(),
+    auditLogService: AuditLogService = new AuditLogService(),
   ) {
     this.reviewRepository = reviewRepository;
     this.stallRepository = stallRepository;
+    this.auditLogService = auditLogService;
   }
 
   private toDto(row: any): ReviewResponseDto {
@@ -73,7 +77,21 @@ export class ReviewService {
     await this.reviewRepository.refreshStallSummary(stallId);
 
     const full = await this.reviewRepository.findById(row.id);
-    return this.toDto(full ?? row);
+    const result = this.toDto(full ?? row);
+
+    try {
+      await this.auditLogService.record({
+        userId,
+        action: 'CREATE_REVIEW',
+        targetTable: 'REVIEWS',
+        targetId: row.id,
+        metadata: { after: result },
+      });
+    } catch (error) {
+      console.error('Audit CREATE_REVIEW error:', error);
+    }
+
+    return result;
   }
 
   async updateReview(
@@ -97,7 +115,21 @@ export class ReviewService {
     }
 
     const full = await this.reviewRepository.findById(id);
-    return this.toDto(full ?? row);
+    const result = this.toDto(full ?? row);
+
+    try {
+      await this.auditLogService.record({
+        userId,
+        action: 'UPDATE_REVIEW',
+        targetTable: 'REVIEWS',
+        targetId: id,
+        metadata: { before: review, after: result },
+      });
+    } catch (error) {
+      console.error('Audit UPDATE_REVIEW error:', error);
+    }
+
+    return result;
   }
 
   async deleteReview(id: number, userId: number, role: string): Promise<void> {
@@ -110,6 +142,18 @@ export class ReviewService {
 
     await this.reviewRepository.delete(id);
     await this.reviewRepository.refreshStallSummary(review.stallId);
+
+    try {
+      await this.auditLogService.record({
+        userId,
+        action: 'DELETE_REVIEW',
+        targetTable: 'REVIEWS',
+        targetId: id,
+        metadata: { before: review },
+      });
+    } catch (error) {
+      console.error('Audit DELETE_REVIEW error:', error);
+    }
   }
 
   async likeReview(reviewId: number, userId: number) {

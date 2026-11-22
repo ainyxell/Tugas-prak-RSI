@@ -19,7 +19,7 @@ import {
   PageHeader,
   inputClass,
 } from '../components/ui.tsx'
-import { errorMessage, getAuditLogs, getFieldErrors } from '../lib/api.ts'
+import { errorMessage, getAuditLogById, getAuditLogs, getFieldErrors } from '../lib/api.ts'
 import {
   actionLabel,
   actionTone,
@@ -37,6 +37,8 @@ const PAGE_SIZE = 20
 interface FilterDraft {
   action: string
   targetTable: string
+  targetId: string
+  userId: string
   from: string
   to: string
 }
@@ -44,6 +46,8 @@ interface FilterDraft {
 const emptyFilters: FilterDraft = {
   action: '',
   targetTable: '',
+  targetId: '',
+  userId: '',
   from: '',
   to: '',
 }
@@ -64,8 +68,35 @@ export function AuditLogPage() {
     useState<AuditLogPagination>(emptyPagination)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
+  const [selectedLogId, setSelectedLogId] = useState<number | null>(null)
+  const [detailLog, setDetailLog] = useState<AuditLog | null>(null)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
+
+  const openDetail = (id: number) => {
+    setSelectedLogId(id)
+    setDetailLog(null)
+    setIsLoadingDetail(true)
+    setDetailError(null)
+
+    getAuditLogById(id)
+      .then((data) => {
+        setDetailLog(data)
+      })
+      .catch((err: unknown) => {
+        setDetailError(errorMessage(err))
+      })
+      .finally(() => {
+        setIsLoadingDetail(false)
+      })
+  }
+
+  const closeDetail = () => {
+    setSelectedLogId(null)
+    setDetailLog(null)
+    setDetailError(null)
+  }
 
   useEffect(() => {
     let active = true
@@ -75,6 +106,8 @@ export function AuditLogPage() {
       pageSize: PAGE_SIZE,
       action: filters.action || undefined,
       targetTable: filters.targetTable || undefined,
+      targetId: filters.targetId ? Number(filters.targetId) : undefined,
+      userId: filters.userId ? Number(filters.userId) : undefined,
       from: filters.from || undefined,
       to: filters.to || undefined,
     })
@@ -156,7 +189,7 @@ export function AuditLogPage() {
 
         <Card className="mb-4 p-4">
           <form
-            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"
             onSubmit={(event) => {
               event.preventDefault()
               applyFilters()
@@ -202,6 +235,40 @@ export function AuditLogPage() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="block text-xs font-semibold text-text-muted">
+              User ID
+              <input
+                type="number"
+                min="1"
+                placeholder="cth: 1"
+                className={`${inputClass} mt-1`}
+                value={draftFilters.userId}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    userId: event.target.value,
+                  }))
+                }
+              />
+            </label>
+
+            <label className="block text-xs font-semibold text-text-muted">
+              Target ID
+              <input
+                type="number"
+                min="1"
+                placeholder="cth: 5"
+                className={`${inputClass} mt-1`}
+                value={draftFilters.targetId}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    targetId: event.target.value,
+                  }))
+                }
+              />
             </label>
 
             <label className="block text-xs font-semibold text-text-muted">
@@ -363,7 +430,7 @@ export function AuditLogPage() {
                           <Button
                             variant="secondary"
                             className="min-h-8 px-2.5 text-xs"
-                            onClick={() => setSelectedLog(log)}
+                            onClick={() => openDetail(log.id)}
                           >
                             <Eye className="size-3.5" aria-hidden="true" />
                             Lihat
@@ -410,66 +477,90 @@ export function AuditLogPage() {
           </>
         )}
 
-      {selectedLog ? (
+      {selectedLogId !== null ? (
         <Modal
-          title="Detail Audit"
-          onClose={() => setSelectedLog(null)}
+          title={`Detail Audit #${selectedLogId}`}
+          onClose={closeDetail}
           footer={
-            <Button variant="secondary" onClick={() => setSelectedLog(null)}>
+            <Button variant="secondary" onClick={closeDetail}>
               Tutup
             </Button>
           }
         >
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 rounded-control border border-dashed border-border bg-surface-muted/50 p-3">
-              <ScrollText className="size-4 text-primary" aria-hidden="true" />
-              <Badge tone={actionTone(selectedLog.action)}>
-                {actionLabel(selectedLog.action)}
-              </Badge>
-              <span className="text-xs text-text-muted">
-                {targetLabel(selectedLog.targetTable)}
-                {selectedLog.targetId !== null
-                  ? ` #${selectedLog.targetId}`
-                  : ''}
-              </span>
-            </div>
+          {isLoadingDetail ? (
+            <LoadingPanel message="Mengambil data detail audit dari server..." />
+          ) : detailError ? (
+            <Alert tone="error">{detailError}</Alert>
+          ) : detailLog ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2 rounded-control border border-dashed border-border bg-surface-muted/50 p-3">
+                <ScrollText className="size-4 text-primary" aria-hidden="true" />
+                <Badge tone={actionTone(detailLog.action)}>
+                  {actionLabel(detailLog.action)}
+                </Badge>
+                <span className="text-xs text-text-muted">
+                  {targetLabel(detailLog.targetTable)}
+                  {detailLog.targetId !== null
+                    ? ` #${detailLog.targetId}`
+                    : ''}
+                </span>
+              </div>
 
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs text-text-muted">Waktu</dt>
-                <dd className="m-0 font-semibold">
-                  {formatDateTime(selectedLog.createdAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-text-muted">Pelaku</dt>
-                <dd className="m-0 font-semibold">
-                  {selectedLog.userName ?? 'Sistem'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-text-muted">Email</dt>
-                <dd className="m-0 font-semibold">
-                  {selectedLog.userEmail ?? '-'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-text-muted">User ID</dt>
-                <dd className="m-0 font-semibold">
-                  {selectedLog.userId ?? '-'}
-                </dd>
-              </div>
-            </dl>
+              <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-text-muted">Waktu</dt>
+                  <dd className="m-0 font-semibold">
+                    {formatDateTime(detailLog.createdAt)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-text-muted">Pelaku</dt>
+                  <dd className="m-0 font-semibold">
+                    {detailLog.userName ?? 'Sistem'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-text-muted">Email</dt>
+                  <dd className="m-0 font-semibold">
+                    {detailLog.userEmail ?? '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-text-muted">User ID</dt>
+                  <dd className="m-0 font-semibold">
+                    {detailLog.userId ?? '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-text-muted">IP Address</dt>
+                  <dd className="m-0 font-mono text-xs font-semibold">
+                    {(detailLog.metadata as any)?.ip_address ?? '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-text-muted">Status / Hasil</dt>
+                  <dd className="m-0 font-semibold">
+                    {(detailLog.metadata as any)?.result ?? '-'}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-text-muted">User Agent</dt>
+                  <dd className="m-0 font-mono text-xs break-all text-text-muted">
+                    {(detailLog.metadata as any)?.user_agent ?? '-'}
+                  </dd>
+                </div>
+              </dl>
 
-            <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-text-muted">
-                Metadata
-              </p>
-              <pre className="m-0 max-h-72 overflow-auto rounded-control bg-surface-muted p-3 text-xs leading-relaxed text-text">
-                {formatMetadata(selectedLog.metadata)}
-              </pre>
+              <div>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-text-muted">
+                  Metadata Lengkap
+                </p>
+                <pre className="m-0 max-h-72 overflow-auto rounded-control bg-surface-muted p-3 text-xs leading-relaxed text-text">
+                  {formatMetadata(detailLog.metadata)}
+                </pre>
+              </div>
             </div>
-          </div>
+          ) : null}
         </Modal>
       ) : null}
     </div>
