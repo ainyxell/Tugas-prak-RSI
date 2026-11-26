@@ -2,9 +2,16 @@ import type { BadgeTone } from '../components/ui.tsx'
 
 const actionLabels: Record<string, string> = {
   LOGIN: 'Login',
+  LOGOUT: 'Logout',
   CREATE_MENU: 'Tambah menu',
   UPDATE_MENU: 'Ubah menu',
   DELETE_MENU: 'Hapus menu',
+  CREATE_STALL: 'Tambah warung',
+  UPDATE_STALL: 'Ubah warung',
+  DELETE_STALL: 'Hapus warung',
+  CREATE_REVIEW: 'Tulis review',
+  UPDATE_REVIEW: 'Ubah review',
+  DELETE_REVIEW: 'Hapus review',
   CREATE_ORDER: 'Buat pesanan',
   UPDATE_ORDER_STATUS: 'Ubah status pesanan',
 }
@@ -12,6 +19,9 @@ const actionLabels: Record<string, string> = {
 const targetLabels: Record<string, string> = {
   USERS: 'Pengguna',
   MENU_ITEMS: 'Menu',
+  STALLS: 'Warung',
+  REVIEWS: 'Review',
+  FLAGS: 'Laporan',
   ORDERS: 'Pesanan',
 }
 
@@ -33,9 +43,10 @@ export function targetLabel(targetTable: string): string {
 
 export function actionTone(action: string): BadgeTone {
   if (action === 'LOGIN') return 'primary'
-  if (action.startsWith('CREATE_')) return 'success'
-  if (action.startsWith('UPDATE_')) return 'warning'
-  if (action.startsWith('DELETE_')) return 'danger'
+  if (action === 'LOGOUT') return 'neutral'
+  if (action.startsWith('CREATE_') || action === 'CREATE') return 'success'
+  if (action.startsWith('UPDATE_') || action === 'UPDATE') return 'warning'
+  if (action.startsWith('DELETE_') || action === 'DELETE') return 'danger'
   return 'neutral'
 }
 

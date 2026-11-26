@@ -49,7 +49,11 @@ export const authApi = {
   },
   me: () => http.get<ApiResponse<User>>('/auth/me').then(data),
   logout: async () => {
-    tokenStorage.clear();
+    try {
+      await http.post('/auth/logout');
+    } finally {
+      tokenStorage.clear();
+    }
   },
 };
 
